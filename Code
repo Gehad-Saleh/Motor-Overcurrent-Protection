@@ -1,0 +1,113 @@
+
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(2,3,4,5,6,7);
+
+const int effect_sensor_pin=8;
+const unsigned long sampleTime=1000;
+const int maxRPM = 10000; 
+
+int speed_pin = A0;
+int read_ADC;
+
+int pwm_pin = 11;
+int duty_cycle;
+int duty_cycle_lcd;
+ 
+void setup() {
+  pinMode(effect_sensor_pin,INPUT);
+  pinMode(speed_pin, INPUT);
+  pinMode(pwm_pin, OUTPUT);
+  pinMode(13 , OUTPUT);
+
+  lcd.begin(16,2);  
+  lcd.setCursor(0,0);
+  lcd.print(" ");
+  lcd.setCursor(0,1);
+  lcd.print("    Project");
+  delay(2000);
+  lcd.clear();
+  Serial.begin(9600);
+}
+ 
+void loop() {    
+
+unsigned int x=0;
+float AcsValue=0.0,Samples=0.0,AvgAcs=0.0,AcsValueF=0.0;
+
+for (int x = 0; x < 150; x++){ //Get 150 samples
+AcsValue = analogRead(A1);     //Read current sensor values   
+Samples = Samples + AcsValue;  //Add samples together
+delay (3); // let ADC settle before next sample 3ms
+}
+AvgAcs=Samples/150.0;//Taking Average of Samples
+AcsValueF = (2.5 - (AvgAcs * (5.07/ 1024.0)) )/0.185;
+
+Serial.println(AcsValueF);//Print the read current on Serial monitor
+delay(50);
+if (AcsValueF> 0.1){
+  digitalWrite(13, HIGH);
+  analogWrite(pwm_pin,LOW);
+  lcd.setCursor(0,1); 
+  lcd.print("  Over Current  ");
+  lcd.print(AcsValueF); 
+  lcd.print("   ");
+  
+  delay(3000);
+}
+   if (AcsValueF> 0.1){
+  digitalWrite(13, LOW);
+}
+
+
+
+   
+int rpm=getRPM();
+
+read_ADC = analogRead(speed_pin);
+duty_cycle = map(read_ADC, 0, 1023, 50, 255);  
+duty_cycle_lcd = map(read_ADC, 0, 1023, 0, 100); 
+
+if(duty_cycle_lcd>0){ 
+analogWrite(pwm_pin, duty_cycle); 
+}else{digitalWrite(pwm_pin, LOW);}
+
+ 
+lcd.setCursor(0,0);
+lcd.print("Duty Cycle: ");
+lcd.print(duty_cycle_lcd); 
+lcd.print("%  ");
+   
+lcd.setCursor(0,1); 
+lcd.print("RPM:");
+lcd.print(rpm); 
+lcd.print("   ");
+
+
+lcd.setCursor(9,1); 
+lcd.print("I:");
+lcd.print(AcsValueF); 
+lcd.print("   ");
+
+delay(10);
+}
+
+int getRPM(){
+  // sample for sampleTime in millisecs
+int kount=0;
+boolean kflag=LOW;
+unsigned long currentTime=0;
+unsigned long startTime=millis();
+
+while (currentTime<=sampleTime){
+if(digitalRead(effect_sensor_pin)==HIGH){kflag=HIGH;}
+if(digitalRead(effect_sensor_pin)==LOW && kflag==HIGH){
+kount++;
+kflag=LOW;
+delay(10);
+}
+currentTime=millis()-startTime;
+}
+int kount2rpm = int(30000./float(sampleTime))*kount;
+
+return kount2rpm;
+}  
