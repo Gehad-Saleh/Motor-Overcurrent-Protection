@@ -1,2 +1,2 @@
 # Motor-Overcurrent-Protection
- switch off the motor Automatedly,  when current is high using ardino and curent sensor 
+  motor turns off automatically when the current is high using Arduino, current sensor and LCD display 
